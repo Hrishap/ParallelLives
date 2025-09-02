@@ -81,24 +81,24 @@ export function MetricsComparison({ currentNode, alternateNode }: MetricsCompari
       key: 'salary',
       label: 'Annual Salary',
       icon: DollarSign,
-      current: currentMetrics.occupation?.salary || 0,
-      alternate: alternateMetrics.occupation?.salary || 0,
+      current: currentMetrics.finances?.salaryMedianUSD || 0,
+      alternate: alternateMetrics.finances?.salaryMedianUSD || 0,
       format: formatCurrency
     },
     {
       key: 'happiness',
       label: 'Happiness Score',
       icon: Heart,
-      current: currentMetrics.city?.scores?.happiness || 0,
-      alternate: alternateMetrics.city?.scores?.happiness || 0,
+      current: currentMetrics.happinessScore || 0,
+      alternate: alternateMetrics.happinessScore || 0,
       format: (v: number) => `${v.toFixed(1)}/10`
     },
     {
       key: 'costOfLiving',
       label: 'Cost of Living',
       icon: Home,
-      current: currentMetrics.city?.scores?.costOfLiving || 0,
-      alternate: alternateMetrics.city?.scores?.costOfLiving || 0,
+      current: currentMetrics.city?.teleportScores?.costOfLiving || 0,
+      alternate: alternateMetrics.city?.teleportScores?.costOfLiving || 0,
       format: (v: number) => `${v.toFixed(1)}/10`,
       inverse: true // Lower is better
     },
@@ -106,24 +106,24 @@ export function MetricsComparison({ currentNode, alternateNode }: MetricsCompari
       key: 'safety',
       label: 'Safety Score',
       icon: Users,
-      current: currentMetrics.city?.scores?.safety || 0,
-      alternate: alternateMetrics.city?.scores?.safety || 0,
+      current: currentMetrics.city?.teleportScores?.safety || 0,
+      alternate: alternateMetrics.city?.teleportScores?.safety || 0,
       format: (v: number) => `${v.toFixed(1)}/10`
     },
     {
       key: 'education',
       label: 'Education Quality',
       icon: GraduationCap,
-      current: currentMetrics.city?.scores?.education || 0,
-      alternate: alternateMetrics.city?.scores?.education || 0,
+      current: currentMetrics.city?.teleportScores?.education || 0,
+      alternate: alternateMetrics.city?.teleportScores?.education || 0,
       format: (v: number) => `${v.toFixed(1)}/10`
     },
     {
       key: 'climate',
       label: 'Climate Score',
       icon: Sun,
-      current: currentMetrics.climate?.comfortScore || 0,
-      alternate: alternateMetrics.climate?.comfortScore || 0,
+      current: currentMetrics.city?.climate?.comfortIndex || 0,
+      alternate: alternateMetrics.city?.climate?.comfortIndex || 0,
       format: (v: number) => `${v.toFixed(1)}/10`
     }
   ];

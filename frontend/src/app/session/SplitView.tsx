@@ -219,8 +219,8 @@ function ScenarioPanel({ node, onBranch, onReadStory }: { node?: any; onBranch?:
       <div className="p-6 flex items-center justify-center h-full">
         <div className="text-center text-gray-500">
           <TreePine className="w-12 h-12 mx-auto mb-4 opacity-50" />
-          <p className="text-lg font-medium mb-2">No Scenario Selected</p>
-          <p>Click on a node in the tree to view the scenario details</p>
+          <p className="text-lg font-medium mb-2">Loading Scenario...</p>
+          <p>Your scenario will appear here automatically</p>
         </div>
       </div>
     );

@@ -42,6 +42,20 @@ export function TreeVisualization({
   useEffect(() => {
     if (!svgRef.current || !tree.nodes.length) return;
 
+    // If a node is selected, ensure it's visible and highlighted
+    if (selectedNodeId) {
+      const selectedNode = tree.nodes.find(n => n.id === selectedNodeId);
+      if (selectedNode) {
+        // Add a subtle animation to draw attention to the selected node
+        setTimeout(() => {
+          const nodeElement = document.querySelector(`[data-node-id="${selectedNodeId}"]`);
+          if (nodeElement) {
+            nodeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+      }
+    }
+
     // Clear previous render
     d3.select(svgRef.current).selectAll("*").remove();
 
@@ -122,6 +136,7 @@ export function TreeVisualization({
       .enter()
       .append('g')
       .attr('class', 'node')
+      .attr('data-node-id', d => d.data.id)
       .attr('transform', d => `translate(${(d.y || 0) + 100},${(d.x || 0) + 50})`)
       .style('cursor', 'pointer')
       .on('click', (event, d) => {

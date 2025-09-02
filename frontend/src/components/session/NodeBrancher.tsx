@@ -152,10 +152,30 @@ export function NodeBrancher({
       return;
     }
 
-    // Update formData with selected parent
+    // Clean up the choice object - only include non-empty fields
+    const cleanChoice: any = {};
+    Object.entries(formData.choice).forEach(([key, value]) => {
+      if (value && typeof value === 'string' && value.trim()) {
+        cleanChoice[key] = value.trim();
+      } else if (value && typeof value === 'object' && value !== null) {
+        // Handle locationChange object
+        const cleanObject: any = {};
+        Object.entries(value).forEach(([subKey, subValue]) => {
+          if (subValue && typeof subValue === 'string' && subValue.trim()) {
+            cleanObject[subKey] = subValue.trim();
+          }
+        });
+        if (Object.keys(cleanObject).length > 0) {
+          cleanChoice[key] = cleanObject;
+        }
+      }
+    });
+
+    // Update formData with selected parent and cleaned choice
     const submitData = {
       ...formData,
-      parentNodeId: selectedParentId
+      parentNodeId: selectedParentId,
+      choice: cleanChoice
     };
 
     createNodeMutation.mutate(submitData);

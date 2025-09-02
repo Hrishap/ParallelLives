@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { toast } from 'sonner';
@@ -20,6 +20,7 @@ import {
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { TreeNode } from '@/types';
 import { SplitView } from '../SplitView';
 import { TreeVisualization } from '../TreeVisualization';
 import { StoryReader } from '../StoryReader';
@@ -153,6 +154,29 @@ export default function SessionPage() {
     enabled: !!sessionId,
     refetchInterval: 30000, // Poll for updates every 30 seconds
   });
+
+  // Auto-select the most appropriate node when session loads or updates
+  useEffect(() => {
+    if (sessionData?.success && sessionData.data.tree.nodes.length > 0 && !selectedNodeId) {
+      const nodes = sessionData.data.tree.nodes;
+      
+      // Find the most recently created completed node, or the newest node
+      const completedNodes = nodes.filter((n: TreeNode) => n.data.status === 'completed');
+      const mostRecentCompleted = completedNodes.sort((a, b) => 
+        new Date(b.data.createdAt || 0).getTime() - new Date(a.data.createdAt || 0).getTime()
+      )[0];
+      
+      if (mostRecentCompleted) {
+        setSelectedNodeId(mostRecentCompleted.id);
+      } else {
+        // If no completed nodes, select the root node
+        const rootNode = nodes.find(n => !n.parentId && !n.data.parentNodeId);
+        if (rootNode) {
+          setSelectedNodeId(rootNode.id);
+        }
+      }
+    }
+  }, [sessionData, selectedNodeId]);
 
   const { data: selectedNode } = useQuery({
     queryKey: ['node', selectedNodeId],
