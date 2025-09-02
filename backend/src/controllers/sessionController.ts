@@ -16,7 +16,22 @@ class SessionController {
     try {
       const { title, description, baseContext, initialChoice } = req.body;
 
-      logger.info('Creating new life session:', { title, initialChoice });
+      logger.info('Creating new life session:', { 
+        title, 
+        initialChoice,
+        requestBody: JSON.stringify(req.body, null, 2)
+      });
+
+      // Validate that initialChoice has at least one valid field
+      if (!initialChoice || typeof initialChoice !== 'object') {
+        const response: ApiResponse = {
+          success: false,
+          error: 'Invalid initial choice format',
+          timestamp: new Date().toISOString()
+        };
+        res.status(400).json(response);
+        return;
+      }
 
       // Create session document first
       const session = new LifeSession({
@@ -61,6 +76,7 @@ class SessionController {
         };
 
         res.status(201).json(response);
+        return;
       } else {
         throw new Error('Failed to create root node');
       }
@@ -73,6 +89,7 @@ class SessionController {
         timestamp: new Date().toISOString()
       };
       res.status(500).json(response);
+      return;
     }
   }
 

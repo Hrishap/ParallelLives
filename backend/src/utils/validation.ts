@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { logger } from './logger';
 
 // Base Schemas
 export const ObjectIdSchema = z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid ObjectId');
@@ -33,9 +34,16 @@ export const ChoiceSchema = z.object({
   personalityChange: z.string().trim().min(1).max(200).optional(),
   relationshipChange: z.string().trim().min(1).max(200).optional()
 }).refine(
-  (data) => Object.values(data).some(value => 
-    value !== undefined && (typeof value === 'string' ? value.length > 0 : true)
-  ),
+  (data) => {
+    // Check if at least one string field has content
+    const stringFields = ['careerChange', 'educationChange', 'lifestyleChange', 'personalityChange', 'relationshipChange'];
+    const hasStringField = stringFields.some(field => data[field as keyof typeof data] && (data[field as keyof typeof data] as string).length > 0);
+    
+    // Check if locationChange has valid content
+    const hasLocationField = data.locationChange && (data.locationChange.city || data.locationChange.country);
+    
+    return hasStringField || hasLocationField;
+  },
   { message: "At least one choice field must be provided" }
 );
 
@@ -101,6 +109,10 @@ export const validateBody = (schema: z.ZodSchema) => {
       next();
     } catch (error) {
       if (error instanceof z.ZodError) {
+        logger.error('Validation failed:', {
+          requestBody: JSON.stringify(req.body, null, 2),
+          validationErrors: error.errors
+        });
         return res.status(400).json({
           success: false,
           error: 'Validation failed',

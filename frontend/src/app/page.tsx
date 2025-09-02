@@ -12,35 +12,43 @@ import { toast } from 'sonner';
 
 // Parse user's choice string into ChoiceSchema format
 function parseChoiceString(choice: string) {
-  const lowerChoice = choice.toLowerCase();
+  // Validate input
+  if (!choice || typeof choice !== 'string' || choice.trim().length === 0) {
+    return { lifestyleChange: 'Explore a different life path' };
+  }
+
+  const trimmedChoice = choice.trim();
+  const lowerChoice = trimmedChoice.toLowerCase();
   
   // Analyze the choice to determine the type of change
   if (lowerChoice.includes('studied') || lowerChoice.includes('education') || lowerChoice.includes('degree') || lowerChoice.includes('university') || lowerChoice.includes('college')) {
-    return { educationChange: choice };
+    return { educationChange: trimmedChoice };
   } else if (lowerChoice.includes('career') || lowerChoice.includes('job') || lowerChoice.includes('work') || lowerChoice.includes('became') || lowerChoice.includes('profession')) {
-    return { careerChange: choice };
+    return { careerChange: trimmedChoice };
   } else if (lowerChoice.includes('moved') || lowerChoice.includes('lived') || lowerChoice.includes(' in ') || lowerChoice.includes(' to ')) {
     // Extract location if possible
-    const locationMatch = choice.match(/(?:in|to)\s+([A-Z][a-zA-Z\s]+)/i);
+    const locationMatch = trimmedChoice.match(/(?:in|to)\s+([A-Z][a-zA-Z\s,]+)/i);
     if (locationMatch) {
       const location = locationMatch[1].trim();
+      const cityCountry = location.split(',').map(s => s.trim()).filter(s => s.length > 0);
+      
       return { 
         locationChange: { 
-          city: location.includes(',') ? location.split(',')[0].trim() : location,
-          country: location.includes(',') ? location.split(',')[1]?.trim() : undefined
+          city: cityCountry[0] || undefined,
+          country: cityCountry[1] || undefined
         }
       };
     }
-    return { locationChange: { city: choice } };
+    return { locationChange: { city: trimmedChoice } };
   } else if (lowerChoice.includes('lifestyle') || lowerChoice.includes('life') || lowerChoice.includes('living')) {
-    return { lifestyleChange: choice };
+    return { lifestyleChange: trimmedChoice };
   } else if (lowerChoice.includes('relationship') || lowerChoice.includes('married') || lowerChoice.includes('dating')) {
-    return { relationshipChange: choice };
+    return { relationshipChange: trimmedChoice };
   } else if (lowerChoice.includes('personality') || lowerChoice.includes('character') || lowerChoice.includes('attitude')) {
-    return { personalityChange: choice };
+    return { personalityChange: trimmedChoice };
   } else {
     // Default to lifestyle change for general "what if" scenarios
-    return { lifestyleChange: choice };
+    return { lifestyleChange: trimmedChoice };
   }
 }
 
