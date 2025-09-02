@@ -31,7 +31,9 @@ import {
   Users,
   Activity,
   Brain,
-  Compass
+  Compass,
+  Crown,
+  Trophy
 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -249,6 +251,15 @@ export function MetricsVisualization({ tree, selectedNodeId, onNodeSelect }: Met
                   <Tooltip 
                     formatter={(value: any, name: string) => [value.toFixed(1), name]}
                     labelFormatter={(label) => `Scenario: ${label}`}
+                    contentStyle={{
+                      backgroundColor: '#1f2937',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: 'white',
+                      fontSize: '12px',
+                      padding: '8px 12px'
+                    }}
+                    itemStyle={{ color: 'white' }}
                   />
                   <Line type="monotone" dataKey="happiness" stroke="#ec4899" strokeWidth={2} name="Happiness" />
                   <Line type="monotone" dataKey="income" stroke="#10b981" strokeWidth={2} name="Income" />
@@ -266,7 +277,24 @@ export function MetricsVisualization({ tree, selectedNodeId, onNodeSelect }: Met
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#1f2937',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: 'white',
+                      fontSize: '12px',
+                      padding: '8px 12px'
+                    }}
+                    itemStyle={{ color: 'white' }}
+                    formatter={(value: any, name: string, props: any) => {
+                      const isWinner = props.payload.current > props.payload.baseline;
+                      return [
+                        `${value.toFixed(1)} ${isWinner ? '👑' : ''}`,
+                        name
+                      ];
+                    }}
+                  />
                   <Bar dataKey="current" fill="#3b82f6" name="Current" />
                   <Bar dataKey="baseline" fill="#94a3b8" name="Baseline" />
                 </BarChart>

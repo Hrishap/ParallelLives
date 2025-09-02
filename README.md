@@ -2,6 +2,54 @@
 
 An AI-powered interactive life simulator that lets you explore alternate life paths through immersive storytelling and data-driven decision making. Experience "what if" scenarios with realistic outcomes, beautiful visualizations, and comprehensive analytics.
 
+---
+
+## 🖼️ App Showcase
+
+<p align="center">
+  <img src="frontend/public/screenshots/landing.png" alt="Landing Page" width="800"/>
+  <br>
+  <em>Landing Page: Instantly start exploring alternate life scenarios with AI-powered simulation.</em>
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/treeview.png" alt="Tree View" width="800"/>
+  <br>
+  <em>Decision Tree: Visualize your life choices and their impacts with a D3-powered tree.</em>
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/timeline.png" alt="Interactive Life Timeline" width="800"/>
+  <br>
+  <em>Interactive Life Timeline: Explore your alternate life year by year with live metrics.</em>
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/comparison.png" alt="Scenario Comparison" width="800"/>
+  <br>
+  <em>Scenario Comparison: Overlay and compare multiple life paths and their happiness evolution.</em>
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/metrics.png" alt="Life Metrics Analysis" width="800"/>
+  <br>
+  <em>Life Metrics Analysis: Dive deep into happiness, income, quality of life, and more with radar charts.</em>
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/branch.png" alt="Branch New Scenario" width="800"/>
+  <br>
+  <em>Branch New Scenario: Explore new life paths by branching from any decision point.</em>
+</p>
+
+<p align="center">
+  <img src="frontend/public/screenshots/story.png" alt="Life Story Chapters" width="800"/>
+  <br>
+  <em>Life Story Chapters: Read immersive, AI-generated narratives for each phase of your alternate life.</em>
+</p>
+
+---
+
 ## ✨ Key Features
 
 ### 🎭 **Interactive Life Simulation**

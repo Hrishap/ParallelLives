@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Play, Pause, RotateCcw, Calendar, TrendingUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Play, Pause, RotateCcw, Calendar, TrendingUp, GitBranch, Plus, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { TreeNode } from '@/types';
@@ -11,12 +11,27 @@ interface InteractiveTimelineProps {
   nodes: TreeNode[];
   selectedNodeId: string | null;
   onTimelineChange: (year: number, nodeData: any) => void;
+  onCreateBranch?: (year: number, fromNodeId: string) => void;
 }
 
-export function InteractiveTimeline({ nodes, selectedNodeId, onTimelineChange }: InteractiveTimelineProps) {
+interface BranchPoint {
+  year: number;
+  description: string;
+  id: string;
+}
+
+export function InteractiveTimeline({ nodes, selectedNodeId, onTimelineChange, onCreateBranch }: InteractiveTimelineProps) {
   const [currentYear, setCurrentYear] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [maxYears] = useState(20); // 20-year simulation
+  const [showBranchOptions, setShowBranchOptions] = useState(false);
+  const [hoveredYear, setHoveredYear] = useState<number | null>(null);
+  const [branchPoints] = useState<BranchPoint[]>([
+    { year: 3, description: "Change career direction", id: "career-3" },
+    { year: 7, description: "Start a family", id: "family-7" },
+    { year: 10, description: "Move to new country", id: "location-10" },
+    { year: 15, description: "Start own business", id: "business-15" }
+  ]);
   
   const selectedNode = nodes.find(n => n.id === selectedNodeId);
   
@@ -121,6 +136,14 @@ export function InteractiveTimeline({ nodes, selectedNodeId, onTimelineChange }:
       generateTimelineData(year);
     }
   };
+
+  const handleBranchCreate = (branchPoint: BranchPoint) => {
+    console.log('Branch create clicked:', branchPoint);
+    if (onCreateBranch && selectedNode) {
+      onCreateBranch(branchPoint.year, selectedNode.id);
+      setShowBranchOptions(false);
+    }
+  };
   
   const togglePlayback = () => {
     setIsPlaying(!isPlaying);
@@ -196,17 +219,68 @@ export function InteractiveTimeline({ nodes, selectedNodeId, onTimelineChange }:
         {/* Interactive Slider */}
         <div className="space-y-4">
           <div className="relative">
-            <input
+            <motion.input
               type="range"
               min="0"
               max={maxYears}
               value={currentYear}
               onChange={handleSliderChange}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                const year = Math.round(percent * maxYears);
+                setHoveredYear(year);
+              }}
+              onMouseLeave={() => setHoveredYear(null)}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider transition-all duration-300"
               style={{
                 background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(currentYear / maxYears) * 100}%, #e5e7eb ${(currentYear / maxYears) * 100}%, #e5e7eb 100%)`
               }}
+              whileDragging={{ scale: 1.02 }}
             />
+            
+            {/* Branch Points on Timeline */}
+            {branchPoints.map((branch) => (
+              <motion.div
+                key={branch.id}
+                className="absolute top-0 transform -translate-x-1/2 -translate-y-1"
+                style={{ left: `${(branch.year / maxYears) * 100}%` }}
+                whileHover={{ scale: 1.2 }}
+                onClick={() => {
+                  setCurrentYear(branch.year);
+                  setShowBranchOptions(true);
+                }}
+              >
+                <div className="w-4 h-4 bg-orange-500 rounded-full border-2 border-white shadow-lg cursor-pointer flex items-center justify-center">
+                  <GitBranch className="w-2 h-2 text-white" />
+                </div>
+                <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                  Year {branch.year}: {branch.description}
+                </div>
+              </motion.div>
+            ))}
+            
+            {/* Hover Tooltip */}
+            <AnimatePresence>
+              {hoveredYear !== null && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute top-8 bg-gray-800 text-white text-xs px-2 py-1 rounded shadow-lg z-20"
+                  style={{ left: `${(hoveredYear / maxYears) * 100}%`, transform: 'translateX(-50%)' }}
+                >
+                  Year {hoveredYear}
+                  {selectedNode && (
+                    <div className="mt-1 space-y-1">
+                      <div>😊 {interpolateMetric(selectedNode.data.metrics?.happinessScore || 5, hoveredYear, 'happiness').toFixed(1)}</div>
+                      <div>💼 {interpolateMetric(selectedNode.data.metrics?.workLifeBalance || 5, hoveredYear, 'workLife').toFixed(1)}</div>
+                      <div>💰 ${interpolateSalary(selectedNode.data.metrics?.finances?.salaryMedianUSD || 50000, hoveredYear).toLocaleString()}</div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
             
             {/* Year markers */}
             <div className="flex justify-between text-xs text-gray-400 mt-1">
@@ -278,36 +352,178 @@ export function InteractiveTimeline({ nodes, selectedNodeId, onTimelineChange }:
           </motion.div>
         </div>
         
-        {/* Quick Stats Preview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center p-3 bg-green-50 rounded-lg">
-            <div className="text-lg font-bold text-green-700">
-              {Math.round((7 + currentYear * 0.1) * 10) / 10}/10
-            </div>
-            <div className="text-xs text-green-600">Happiness</div>
-          </div>
-          
-          <div className="text-center p-3 bg-blue-50 rounded-lg">
-            <div className="text-lg font-bold text-blue-700">
-              {Math.round((6 + Math.sin(currentYear * 0.3)) * 10) / 10}/10
-            </div>
-            <div className="text-xs text-blue-600">Work-Life</div>
-          </div>
-          
-          <div className="text-center p-3 bg-purple-50 rounded-lg">
-            <div className="text-lg font-bold text-purple-700">
-              ${(50000 * Math.pow(1.06, currentYear) / 1000).toFixed(0)}k
-            </div>
-            <div className="text-xs text-purple-600">Salary</div>
-          </div>
-          
-          <div className="text-center p-3 bg-orange-50 rounded-lg">
-            <div className="text-lg font-bold text-orange-700">
-              {Math.round((5 + currentYear * 0.2) * 10) / 10}/10
-            </div>
-            <div className="text-xs text-orange-600">Experience</div>
-          </div>
-        </div>
+        {/* Quick Stats Preview with Winner Highlights */}
+        <motion.div 
+          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+          layout
+        >
+          {[
+            { 
+              key: 'happiness', 
+              label: 'Happiness', 
+              value: selectedNode ? interpolateMetric(selectedNode.data.metrics?.happinessScore || 5, currentYear, 'happiness') : 7 + currentYear * 0.1,
+              color: 'green',
+              emoji: '😊'
+            },
+            { 
+              key: 'workLife', 
+              label: 'Work-Life', 
+              value: selectedNode ? interpolateMetric(selectedNode.data.metrics?.workLifeBalance || 5, currentYear, 'workLife') : 6 + Math.sin(currentYear * 0.3),
+              color: 'blue',
+              emoji: '⚖️'
+            },
+            { 
+              key: 'salary', 
+              label: 'Salary', 
+              value: selectedNode ? interpolateSalary(selectedNode.data.metrics?.finances?.salaryMedianUSD || 50000, currentYear) : 50000 * Math.pow(1.06, currentYear),
+              color: 'purple',
+              emoji: '💰',
+              isCurrency: true
+            },
+            { 
+              key: 'experience', 
+              label: 'Experience', 
+              value: 5 + currentYear * 0.2,
+              color: 'orange',
+              emoji: '🎯'
+            }
+          ].map((stat, index) => {
+            const isWinner = index === 0; // For demo, first stat is winner
+            return (
+              <motion.div 
+                key={stat.key}
+                className={`text-center p-3 bg-${stat.color}-50 rounded-lg relative overflow-hidden`}
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
+                {isWinner && currentYear > 5 && (
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    className="absolute top-1 right-1"
+                  >
+                    <Crown className="w-4 h-4 text-yellow-500" />
+                  </motion.div>
+                )}
+                <motion.div 
+                  className={`text-lg font-bold text-${stat.color}-700`}
+                  key={currentYear} // Force re-render on year change
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {stat.emoji} {stat.isCurrency 
+                    ? `$${(stat.value / 1000).toFixed(0)}k`
+                    : `${stat.value.toFixed(1)}/10`
+                  }
+                </motion.div>
+                <div className={`text-xs text-${stat.color}-600`}>{stat.label}</div>
+                
+                {/* Animated progress bar */}
+                <div className="w-full bg-gray-200 rounded-full h-1 mt-2">
+                  <motion.div 
+                    className={`h-1 rounded-full bg-${stat.color}-400`}
+                    initial={{ width: 0 }}
+                    animate={{ 
+                      width: stat.isCurrency 
+                        ? `${Math.min((stat.value / 100000) * 100, 100)}%`
+                        : `${(stat.value / 10) * 100}%`
+                    }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                  />
+                </div>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+        
+        {/* Branch Creation Modal */}
+        <AnimatePresence>
+          {showBranchOptions && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+              onClick={() => setShowBranchOptions(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-lg p-6 max-w-md mx-4"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <GitBranch className="w-5 h-5" />
+                  Create New Branch at Year {currentYear}
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  What major life change would you like to explore from this point?
+                </p>
+                <div className="space-y-3">
+                  {/* Show the specific branch point option if available */}
+                  {branchPoints
+                    .filter(bp => bp.year === currentYear)
+                    .map(branch => (
+                      <Button
+                        key={branch.id}
+                        variant="outline"
+                        className="w-full justify-start"
+                        onClick={() => handleBranchCreate(branch)}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        {branch.description}
+                      </Button>
+                    ))
+                  }
+                  
+                  {/* Always show some general branch options */}
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => handleBranchCreate({ year: currentYear, description: "Change career direction", id: "career-change" })}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Change career direction
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => handleBranchCreate({ year: currentYear, description: "Move to new location", id: "location-change" })}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Move to new location
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => handleBranchCreate({ year: currentYear, description: "Start a new relationship", id: "relationship-change" })}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Start a new relationship
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => handleBranchCreate({ year: currentYear, description: "Custom life change", id: "custom" })}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Custom life change...
+                  </Button>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <Button variant="outline" onClick={() => setShowBranchOptions(false)} className="flex-1">
+                    Cancel
+                  </Button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </CardContent>
     </Card>
   );
