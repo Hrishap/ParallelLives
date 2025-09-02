@@ -32,9 +32,16 @@ interface TeleportCity {
   }>;
 }
 
+interface TeleportSearchResult {
+  matching_full_name: string;
+  _links: {
+    'city:item': { href: string };
+  };
+}
+
 interface TeleportCitiesResponse {
   _embedded: {
-    'city:search-results': TeleportCity[];
+    'city:search-results': TeleportSearchResult[];
   };
   _links: {
     self: { href: string };
@@ -49,9 +56,8 @@ interface TeleportScore {
 
 interface TeleportScores {
   categories: TeleportScore[];
-  summary: {
-    score: number;
-  };
+  summary: string;
+  teleport_city_score: number;
 }
 
 interface TeleportDetails {
@@ -106,22 +112,29 @@ class TeleportService {
         params: { search: query }
       });
 
-      const cities = response.data._embedded?.['city:search-results'] || [];
+      const searchResults = response.data._embedded?.['city:search-results'] || [];
       
-      // Convert cities to urban areas by following the urban_area links
+      // Convert search results to cities, then to urban areas
       const urbanAreas: TeleportUrbanArea[] = [];
       
-      for (const city of cities) {
-        if (city._links['city:urban_area']) {
-          try {
-            const urbanAreaResponse: AxiosResponse<TeleportUrbanArea> = await this.client.get(
-              city._links['city:urban_area'].href.replace(this.baseURL, '')
-            );
+      for (const result of searchResults) {
+        try {
+          // First get the city details from city:item link
+          const cityHref = result._links['city:item'].href;
+          const cityPath = cityHref.startsWith(this.baseURL) ? cityHref.replace(this.baseURL, '') : cityHref;
+          const cityResponse: AxiosResponse<TeleportCity> = await this.client.get(cityPath);
+          const city = cityResponse.data;
+          
+          // Then get the urban area if available
+          if (city._links['city:urban_area']) {
+            const urbanAreaHref = city._links['city:urban_area'].href;
+            const urbanAreaPath = urbanAreaHref.startsWith(this.baseURL) ? urbanAreaHref.replace(this.baseURL, '') : urbanAreaHref;
+            const urbanAreaResponse: AxiosResponse<TeleportUrbanArea> = await this.client.get(urbanAreaPath);
             urbanAreas.push(urbanAreaResponse.data);
-          } catch (error) {
-            logger.warn(`Failed to fetch urban area for city ${city.name}:`, error);
-            // Continue with other cities even if one fails
           }
+        } catch (error) {
+          logger.warn(`Failed to fetch urban area for search result ${result.matching_full_name}:`, error);
+          // Continue with other results even if one fails
         }
       }
       
@@ -199,13 +212,31 @@ class TeleportService {
   }
 
   private async getCityScores(slug: string): Promise<TeleportScores> {
-    const response: AxiosResponse = await this.client.get(`/urban_areas/slug:${slug}/scores/`);
-    return response.data;
+    try {
+      const response: AxiosResponse = await this.client.get(`/urban_areas/slug:${slug}/scores/`);
+      return response.data;
+    } catch (error) {
+      logger.warn(`Failed to get scores for ${slug}, using defaults`);
+      // Return default scores if API fails
+      return {
+        categories: [],
+        summary: 'No data available',
+        teleport_city_score: 5.0
+      };
+    }
   }
 
   private async getCityDetails(slug: string): Promise<TeleportDetails> {
-    const response: AxiosResponse = await this.client.get(`/urban_areas/slug:${slug}/details/`);
-    return response.data;
+    try {
+      const response: AxiosResponse = await this.client.get(`/urban_areas/slug:${slug}/details/`);
+      return response.data;
+    } catch (error) {
+      logger.warn(`Failed to get details for ${slug}, using defaults`);
+      // Return empty details if API fails
+      return {
+        categories: []
+      };
+    }
   }
 
   private mapTeleportScores(scores: TeleportScores) {
@@ -216,7 +247,7 @@ class TeleportService {
     }, {} as any);
 
     return {
-      overall: Math.round(scores.summary.score * 10) / 10,
+      overall: Math.round(scores.teleport_city_score * 10) / 10,
       costOfLiving: scoreMap.costOfLiving || 5,
       safety: scoreMap.safety || 5,
       housing: scoreMap.housing || 5,
@@ -247,27 +278,27 @@ class TeleportService {
   }
 
   private extractCountryFromDetails(details: TeleportDetails): string {
-    const countryCategory = details.categories.find(cat => cat.id === 'GEOGRAPHY');
+    const countryCategory = details.categories.find(cat => cat.id.toLowerCase() === 'geography');
     if (countryCategory) {
-      const countryData = countryCategory.data.find(item => item.id === 'COUNTRY');
+      const countryData = countryCategory.data.find(item => item.id.toLowerCase() === 'country');
       if (countryData) return countryData.name;
     }
     return 'Unknown';
   }
 
   private extractPopulation(details: TeleportDetails): number | undefined {
-    const demographicsCategory = details.categories.find(cat => cat.id === 'DEMOGRAPHICS');
+    const demographicsCategory = details.categories.find(cat => cat.id.toLowerCase() === 'demographics');
     if (demographicsCategory) {
-      const populationData = demographicsCategory.data.find(item => item.id === 'POPULATION');
+      const populationData = demographicsCategory.data.find(item => item.id.toLowerCase() === 'population');
       if (populationData) return populationData.value;
     }
     return undefined;
   }
 
   private extractTimezone(details: TeleportDetails): string | undefined {
-    const geographyCategory = details.categories.find(cat => cat.id === 'GEOGRAPHY');
+    const geographyCategory = details.categories.find(cat => cat.id.toLowerCase() === 'geography');
     if (geographyCategory) {
-      const timezoneData = geographyCategory.data.find(item => item.id === 'TIMEZONE');
+      const timezoneData = geographyCategory.data.find(item => item.id.toLowerCase() === 'timezone');
       if (timezoneData) return timezoneData.name;
     }
     return undefined;
