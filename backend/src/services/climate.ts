@@ -28,7 +28,7 @@ interface ClimateMetrics {
 
 class ClimateService {
   private client: AxiosInstance;
-  private baseURL = 'https://api.open-meteo.com/v1';
+  private baseURL = 'https://archive-api.open-meteo.com/v1';
 
   constructor() {
     this.client = axios.create({
@@ -36,7 +36,7 @@ class ClimateService {
       timeout: 10000,
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'ParallelLives/1.0'
+        'User-Agent': 'ParallelLives/1.0 (contact@parallellives.com)'
       }
     });
 
@@ -75,7 +75,7 @@ class ClimateService {
             'sunshine_duration',
             'wind_speed_10m_max'
           ].join(','),
-          timezone: 'auto'
+          timezone: 'UTC'
         }
       });
 
@@ -133,27 +133,28 @@ class ClimateService {
   }
 
   private calculateClimateMetrics(data: ClimateData): ClimateMetrics {
-    const temps = data.daily.temperature_2m_mean;
-    const precipitation = data.daily.precipitation_sum;
-    const sunshine = data.daily.sunshine_duration;
+    const temps = data.daily.temperature_2m_mean || [];
+    const precipitation = data.daily.precipitation_sum || [];
+    const sunshine = data.daily.sunshine_duration || [];
 
-    // Calculate averages
-    const avgTempC = temps.reduce((sum, temp) => sum + temp, 0) / temps.length;
+    // Calculate averages with safety checks
+    const avgTempC = temps.length > 0 ? temps.reduce((sum, temp) => sum + (temp || 0), 0) / temps.length : 15;
     const avgTempF = (avgTempC * 9/5) + 32;
 
     // Count rainy days (> 1mm precipitation)
-    const rainDays = precipitation.filter(precip => precip > 1).length;
+    const rainDays = precipitation.filter(precip => (precip || 0) > 1).length;
 
     // Count sunny days (> 8 hours of sunshine)
-    const sunnyDays = sunshine.filter(sun => sun > 8 * 3600).length; // sunshine in seconds
+    const sunnyDays = sunshine.filter(sun => (sun || 0) > 8 * 3600).length; // sunshine in seconds
 
-    // Determine season based on current date
+    // Determine season based on current date (month is 0-11)
     const now = new Date();
     const month = now.getMonth();
-    let season = 'spring';
-    if (month >= 5 && month <= 7) season = 'summer';
-    else if (month >= 8 && month <= 10) season = 'autumn';
-    else if (month >= 11 || month <= 1) season = 'winter';
+    let season = 'winter'; // default
+    if (month >= 2 && month <= 4) season = 'spring';  // Mar-May
+    else if (month >= 5 && month <= 7) season = 'summer';  // Jun-Aug
+    else if (month >= 8 && month <= 10) season = 'autumn';  // Sep-Nov
+    else season = 'winter';  // Dec-Feb
 
     // Calculate comfort index (0-10)
     // Based on temperature range 15-25°C being most comfortable
@@ -161,8 +162,9 @@ class ClimateService {
     if (avgTempC < 10 || avgTempC > 30) tempComfort = 3;
     else if (avgTempC < 15 || avgTempC > 25) tempComfort = 7;
 
-    const rainComfort = Math.max(0, 10 - (rainDays / 365 * 20)); // Penalize excessive rain
-    const sunComfort = Math.min(10, sunnyDays / 365 * 20); // Reward sunshine
+    const totalDays = Math.max(1, temps.length); // Avoid division by zero
+    const rainComfort = Math.max(0, 10 - (rainDays / totalDays * 20)); // Penalize excessive rain
+    const sunComfort = Math.min(10, sunnyDays / totalDays * 20); // Reward sunshine
 
     const comfortIndex = Math.round((tempComfort + rainComfort + sunComfort) / 3 * 10) / 10;
 
