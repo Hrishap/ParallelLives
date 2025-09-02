@@ -36,7 +36,7 @@ class ClimateService {
       timeout: 10000,
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'ParallelLives/1.0 (contact@parallellives.com)'
+        'User-Agent': 'ParallelLives/1.0 (hrishap3@gmail.com)'
       }
     });
 

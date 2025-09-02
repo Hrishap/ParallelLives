@@ -36,6 +36,7 @@ export function TreeVisualization({
 }: TreeVisualizationProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const zoomBehaviorRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
   const [zoom, setZoom] = useState(1);
   const [transform, setTransform] = useState({ x: 0, y: 0 });
 
@@ -76,6 +77,8 @@ export function TreeVisualization({
         g.attr('transform', transform);
       });
 
+    // Store zoom behavior reference for controls
+    zoomBehaviorRef.current = zoomBehavior;
     svg.call(zoomBehavior);
 
     // Create main group for zooming/panning
@@ -322,24 +325,30 @@ export function TreeVisualization({
   };
 
   const handleZoomIn = () => {
-    if (!svgRef.current) return;
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
     const svg = d3.select(svgRef.current);
-    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>();
-    svg.call(zoomBehavior.scaleBy, 1.5);
+    svg.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 1.5);
   };
 
   const handleZoomOut = () => {
-    if (!svgRef.current) return;
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
     const svg = d3.select(svgRef.current);
-    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>();
-    svg.call(zoomBehavior.scaleBy, 1 / 1.5);
+    svg.transition().duration(300).call(zoomBehaviorRef.current.scaleBy, 1 / 1.5);
   };
 
   const handleReset = () => {
-    if (!svgRef.current) return;
+    if (!svgRef.current || !zoomBehaviorRef.current) return;
     const svg = d3.select(svgRef.current);
-    const zoomBehavior = d3.zoom<SVGSVGElement, unknown>();
-    svg.call(zoomBehavior.transform, d3.zoomIdentity);
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    
+    svg.transition().duration(750).call(
+      zoomBehaviorRef.current.transform,
+      d3.zoomIdentity.translate(width / 4, height / 4)
+    );
   };
 
   return (

@@ -15,7 +15,9 @@ import {
   Eye,
   Settings,
   TreePine,
-  User
+  User,
+  TrendingUp,
+  GitBranch
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -26,6 +28,8 @@ import { TreeVisualization } from '../TreeVisualization';
 import { StoryReader } from '../StoryReader';
 import { NodeBrancher } from '@/components/session/NodeBrancher';
 import { MetricsVisualization } from '@/components/session/MetricsVisualization';
+import { InteractiveTimeline } from '@/components/session/InteractiveTimeline';
+import { ScenarioComparison } from '@/components/session/ScenarioComparison';
 import { UserProfileSetup } from '../../../components/session/UserProfileSetup';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
@@ -33,7 +37,7 @@ export default function SessionPage() {
   const params = useParams();
   const sessionId = params.id as string;
   
-  const [viewMode, setViewMode] = useState<'split' | 'tree' | 'story' | 'metrics'>('split');
+  const [viewMode, setViewMode] = useState<'split' | 'tree' | 'story' | 'metrics' | 'timeline' | 'comparison'>('split');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showBrancher, setShowBrancher] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
@@ -112,27 +116,58 @@ export default function SessionPage() {
           yPosition += 8;
         }
         
-        // Add story summary if available - check multiple possible story locations
-        let storyText = null;
-        if (node.data.outcome?.story) {
-          storyText = node.data.outcome.story;
+        // Add complete story content
+        let fullStoryText = '';
+        
+        // Collect all available story content
+        if (node.data.aiNarrative?.chapters && node.data.aiNarrative.chapters.length > 0) {
+          // Include all chapters with titles
+          node.data.aiNarrative.chapters.forEach((chapter: any, chapterIndex: number) => {
+            if (chapter.title) {
+              fullStoryText += `\n${chapter.title}\n\n`;
+            }
+            if (chapter.text) {
+              fullStoryText += chapter.text + '\n\n';
+            }
+          });
+        } else if (node.data.outcome?.story) {
+          fullStoryText = node.data.outcome.story;
         } else if (node.data.aiNarrative?.summary) {
-          storyText = node.data.aiNarrative.summary;
-        } else if (node.data.aiNarrative?.chapters?.[0]?.text) {
-          storyText = node.data.aiNarrative.chapters[0].text;
+          fullStoryText = node.data.aiNarrative.summary;
         } else if (node.data.story) {
-          storyText = node.data.story;
+          fullStoryText = node.data.story;
         }
         
-        if (storyText) {
+        if (fullStoryText.trim()) {
           pdf.setFontSize(9);
-          const storyLines = pdf.splitTextToSize(storyText.substring(0, 400) + '...', 170);
-          pdf.text(storyLines, 25, yPosition);
-          yPosition += storyLines.length * 5 + 10;
+          yPosition += 5;
+          
+          // Split the full story text into lines that fit the page width
+          const storyLines = pdf.splitTextToSize(fullStoryText.trim(), 170);
+          
+          // Check if we need to add pages for the story content
+          const linesPerPage = Math.floor((280 - yPosition) / 5);
+          let currentLineIndex = 0;
+          
+          while (currentLineIndex < storyLines.length) {
+            const linesToAdd = Math.min(linesPerPage, storyLines.length - currentLineIndex);
+            const currentPageLines = storyLines.slice(currentLineIndex, currentLineIndex + linesToAdd);
+            
+            pdf.text(currentPageLines, 25, yPosition);
+            currentLineIndex += linesToAdd;
+            
+            if (currentLineIndex < storyLines.length) {
+              pdf.addPage();
+              yPosition = 30;
+            } else {
+              yPosition += currentPageLines.length * 5;
+            }
+          }
+          
+          yPosition += 10;
         } else {
-          // Debug: Add what data is actually available
           pdf.setFontSize(8);
-          pdf.text('Story content not yet generated or unavailable', 25, yPosition);
+          pdf.text('Story content not yet generated', 25, yPosition);
           yPosition += 10;
         }
         
@@ -286,6 +321,28 @@ export default function SessionPage() {
                   <Eye className="w-4 h-4 mr-1 inline" />
                   Story
                 </button>
+                <button
+                  onClick={() => setViewMode('timeline')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'timeline' 
+                      ? 'bg-white text-gray-900 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <TrendingUp className="w-4 h-4 mr-1 inline" />
+                  Timeline
+                </button>
+                <button
+                  onClick={() => setViewMode('comparison')}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'comparison' 
+                      ? 'bg-white text-gray-900 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <GitBranch className="w-4 h-4 mr-1 inline" />
+                  Compare
+                </button>
               </div>
 
               {/* Action Buttons */}
@@ -364,6 +421,28 @@ export default function SessionPage() {
             <StoryReader 
               node={selectedNode.data}
               onBranch={() => setShowBrancher(true)}
+            />
+          </div>
+        )}
+
+        {viewMode === 'timeline' && (
+          <div className="max-w-7xl mx-auto py-8 px-4">
+            <InteractiveTimeline
+              nodes={tree.nodes}
+              selectedNodeId={selectedNodeId}
+              onTimelineChange={(year, data) => {
+                // Handle timeline updates - could trigger story preview updates
+                console.log(`Year ${year}:`, data);
+              }}
+            />
+          </div>
+        )}
+
+        {viewMode === 'comparison' && (
+          <div className="max-w-7xl mx-auto py-8 px-4">
+            <ScenarioComparison
+              nodes={tree.nodes}
+              onNodeSelect={setSelectedNodeId}
             />
           </div>
         )}

@@ -16,6 +16,7 @@ import {
   Share2
 } from 'lucide-react';
 import { formatCurrency, formatNumber } from '@/lib/utils';
+import jsPDF from 'jspdf';
 
 interface StoryReaderProps {
   node: {
@@ -74,6 +75,122 @@ interface StoryReaderProps {
 export function StoryReader({ node, onBranch }: StoryReaderProps) {
   const [activeChapter, setActiveChapter] = useState(0);
   const { aiNarrative, metrics, media } = node;
+
+  const exportToPDF = () => {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 20;
+    const maxWidth = pageWidth - 2 * margin;
+    let yPosition = margin;
+
+    // Title
+    pdf.setFontSize(20);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Your Alternate Life Story', margin, yPosition);
+    yPosition += 15;
+
+    // Summary
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'normal');
+    const summaryLines = pdf.splitTextToSize(aiNarrative.summary, maxWidth);
+    pdf.text(summaryLines, margin, yPosition);
+    yPosition += summaryLines.length * 6 + 10;
+
+    // Location and Career Info
+    pdf.setFontSize(10);
+    pdf.text(`Location: ${metrics.city.name}, ${metrics.city.country}`, margin, yPosition);
+    yPosition += 8;
+    pdf.text(`Career: ${metrics.occupation.name}`, margin, yPosition);
+    yPosition += 8;
+    pdf.text(`Happiness Score: ${formatNumber(metrics.happinessScore)}/10`, margin, yPosition);
+    yPosition += 8;
+    pdf.text(`Quality of Life: ${formatNumber(metrics.qualityOfLifeIndex)}/10`, margin, yPosition);
+    yPosition += 15;
+
+    // Chapters
+    aiNarrative.chapters.forEach((chapter, index) => {
+      // Check if we need a new page
+      if (yPosition > pageHeight - 50) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+
+      // Chapter title
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`${chapter.title}`, margin, yPosition);
+      yPosition += 10;
+
+      // Year range
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'italic');
+      pdf.text(chapter.yearRange || '', margin, yPosition);
+      yPosition += 8;
+
+      // Chapter text
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      const chapterLines = pdf.splitTextToSize(chapter.text, maxWidth);
+      
+      chapterLines.forEach((line: string) => {
+        if (yPosition > pageHeight - 20) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.text(line, margin, yPosition);
+        yPosition += 6;
+      });
+
+      // Highlights
+      if (chapter.highlights && chapter.highlights.length > 0) {
+        yPosition += 5;
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Key Highlights:', margin, yPosition);
+        yPosition += 8;
+        
+        pdf.setFont('helvetica', 'normal');
+        chapter.highlights.forEach((highlight) => {
+          if (yPosition > pageHeight - 20) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          pdf.text(`• ${highlight}`, margin + 5, yPosition);
+          yPosition += 6;
+        });
+      }
+      
+      yPosition += 10;
+    });
+
+    // Milestones
+    if (aiNarrative.milestones && aiNarrative.milestones.length > 0) {
+      if (yPosition > pageHeight - 100) {
+        pdf.addPage();
+        yPosition = margin;
+      }
+
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Life Milestones', margin, yPosition);
+      yPosition += 15;
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      aiNarrative.milestones.forEach((milestone) => {
+        if (yPosition > pageHeight - 20) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        pdf.text(`Year ${milestone.year}: ${milestone.event} (${milestone.category})`, margin, yPosition);
+        yPosition += 6;
+      });
+    }
+
+    // Save the PDF
+    const fileName = `alternate-life-story-${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
@@ -196,7 +313,7 @@ export function StoryReader({ node, onBranch }: StoryReaderProps) {
         </Button>
         
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={exportToPDF}>
             <Download className="w-4 h-4 mr-2" />
             Export PDF
           </Button>

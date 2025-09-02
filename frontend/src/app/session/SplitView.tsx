@@ -198,14 +198,66 @@ function CurrentLifePanel({ session }: { session: any }) {
         </Card>
       )}
 
-      {/* Placeholder for current life metrics */}
+      {/* Baseline Life Metrics */}
       <Card>
         <CardHeader>
           <CardTitle>Current Life Metrics</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-gray-500">
-            <p>Select an alternate scenario to see comparisons</p>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
+              <div className="text-2xl font-bold text-blue-700">7.0</div>
+              <div className="text-xs text-blue-600">Happiness</div>
+            </div>
+            <div className="text-center p-3 bg-green-50 rounded-lg">
+              <div className="text-2xl font-bold text-green-700">6.5</div>
+              <div className="text-xs text-green-600">Work-Life</div>
+            </div>
+            <div className="text-center p-3 bg-purple-50 rounded-lg">
+              <div className="text-2xl font-bold text-purple-700">7.5</div>
+              <div className="text-xs text-purple-600">Health</div>
+            </div>
+            <div className="text-center p-3 bg-orange-50 rounded-lg">
+              <div className="text-2xl font-bold text-orange-700">6.8</div>
+              <div className="text-xs text-orange-600">Social Life</div>
+            </div>
+          </div>
+          
+          {/* Initial Choice Display */}
+          {session.initialChoice && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <h4 className="font-medium text-gray-900 mb-2">Your Initial Choice</h4>
+              <div className="space-y-2 text-sm">
+                {session.initialChoice.careerChange && (
+                  <div className="flex items-center gap-2">
+                    <Briefcase className="w-4 h-4 text-gray-500" />
+                    <span>Career: {session.initialChoice.careerChange}</span>
+                  </div>
+                )}
+                {session.initialChoice.locationChange?.city && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-gray-500" />
+                    <span>Location: {session.initialChoice.locationChange.city}</span>
+                  </div>
+                )}
+                {session.initialChoice.educationChange && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-4 text-center text-gray-500">🎓</span>
+                    <span>Education: {session.initialChoice.educationChange}</span>
+                  </div>
+                )}
+                {session.initialChoice.lifestyleChange && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-4 text-center text-gray-500">🌱</span>
+                    <span>Lifestyle: {session.initialChoice.lifestyleChange}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <div className="text-center text-sm text-gray-500 mt-4">
+            This is your baseline for comparison with alternate scenarios
           </div>
         </CardContent>
       </Card>
