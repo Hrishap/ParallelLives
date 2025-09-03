@@ -19,14 +19,12 @@
     "sourceMap": true,
     "removeComments": false,
 
-    "noImplicitAny": false, 
-    "strictNullChecks": false, 
-    "strictFunctionTypes": false, 
-    "noImplicitReturns": false, 
-    "noUncheckedIndexedAccess": false, 
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "noImplicitReturns": false,
+    "noUncheckedIndexedAccess": false,
     "noImplicitOverride": false,
-
-    "types": ["node", "express"],
 
     "baseUrl": "./src",
     "paths": {
@@ -40,10 +38,5 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }
