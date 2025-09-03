@@ -46,15 +46,19 @@ export function InteractiveTimeline({ nodes, selectedNodeId, onTimelineChange, o
           return maxYears;
         }
         const next = prev + 1;
-        if (selectedNode) {
-          generateTimelineData(next);
-        }
         return next;
       });
     }, 1500); // Slower transitions - 1.5 seconds per year
     
     return () => clearInterval(interval);
-  }, [isPlaying, selectedNode, maxYears]);
+  }, [isPlaying, maxYears]);
+
+  // Update timeline data when year changes
+  useEffect(() => {
+    if (selectedNode) {
+      generateTimelineData(currentYear);
+    }
+  }, [currentYear, selectedNode]);
   
   // Generate interpolated data for any year
   const generateTimelineData = (year: number) => {
