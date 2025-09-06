@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec ts-node -r tsconfig-paths/register src/index.ts",
-    "build": "tsc --skipLibCheck",
+    "build": "npm install --production=false && tsc",
     "start": "node -r tsconfig-paths/register dist/index.js",
     "test": "jest",
     "lint": "eslint src --ext .ts",
